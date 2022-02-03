@@ -4,10 +4,10 @@ preRun:
     - yarn install
 postMerge:
   pattern:
-    - "./test/*.unittest.js"
+    - "./test/cleverMerge.unittest.js"
 preMerge:
   pattern:
-    - "./test/*.unittest.js"
+    - "./test/cleverMerge.unittest.js"
 postRun:
   command:
     - yarn --version
