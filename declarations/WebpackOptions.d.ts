@@ -95,7 +95,7 @@ export type LibraryExport = string[] | string;
  */
 export type LibraryName = string[] | string | LibraryCustomUmdObject;
 /**
- * Type of library (types included by default are 'var', 'module', 'assign', 'assign-properties', 'this', 'window', 'self', 'global', 'commonjs', 'commonjs2', 'commonjs-module', 'amd', 'amd-require', 'umd', 'umd2', 'jsonp', 'system', but others might be added by plugins).
+ * Type of library (types included by default are 'var', 'module', 'assign', 'assign-properties', 'this', 'window', 'self', 'global', 'commonjs', 'commonjs2', 'commonjs-module', 'commonjs-static', 'amd', 'amd-require', 'umd', 'umd2', 'jsonp', 'system', but others might be added by plugins).
  */
 export type LibraryType =
 	| (
@@ -110,6 +110,7 @@ export type LibraryType =
 			| "commonjs"
 			| "commonjs2"
 			| "commonjs-module"
+			| "commonjs-static"
 			| "amd"
 			| "amd-require"
 			| "umd"
@@ -189,6 +190,7 @@ export type ExternalsType =
 	| "commonjs"
 	| "commonjs2"
 	| "commonjs-module"
+	| "commonjs-static"
 	| "amd"
 	| "amd-require"
 	| "umd"
@@ -444,6 +446,14 @@ export type CompareBeforeEmit = boolean;
  */
 export type CrossOriginLoading = false | "anonymous" | "use-credentials";
 /**
+ * Specifies the filename template of non-initial output css files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.
+ */
+export type CssChunkFilename = FilenameTemplate;
+/**
+ * Specifies the filename template of output css files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.
+ */
+export type CssFilename = FilenameTemplate;
+/**
  * Similar to `output.devtoolModuleFilenameTemplate`, but used in the case of duplicate module identifiers.
  */
 export type DevtoolFallbackModuleFilenameTemplate = string | Function;
@@ -682,6 +692,15 @@ export type AssetGeneratorDataUrlFunction = (
  */
 export type AssetGeneratorOptions = AssetInlineGeneratorOptions &
 	AssetResourceGeneratorOptions;
+/**
+ * Emit the asset in the specified folder relative to 'output.path'. This should only be needed when custom 'publicPath' is specified to match the folder structure there.
+ */
+export type AssetModuleOutputPath =
+	| string
+	| ((
+			pathData: import("../lib/Compilation").PathData,
+			assetInfo?: import("../lib/Compilation").AssetInfo
+	  ) => string);
 /**
  * Function that executes for module and should return whenever asset should be inlined as DataUrl.
  */
@@ -1077,7 +1096,7 @@ export interface LibraryOptions {
 	 */
 	name?: LibraryName;
 	/**
-	 * Type of library (types included by default are 'var', 'module', 'assign', 'assign-properties', 'this', 'window', 'self', 'global', 'commonjs', 'commonjs2', 'commonjs-module', 'amd', 'amd-require', 'umd', 'umd2', 'jsonp', 'system', but others might be added by plugins).
+	 * Type of library (types included by default are 'var', 'module', 'assign', 'assign-properties', 'this', 'window', 'self', 'global', 'commonjs', 'commonjs2', 'commonjs-module', 'commonjs-static', 'amd', 'amd-require', 'umd', 'umd2', 'jsonp', 'system', but others might be added by plugins).
 	 */
 	type: LibraryType;
 	/**
@@ -1977,6 +1996,14 @@ export interface Output {
 	 */
 	crossOriginLoading?: CrossOriginLoading;
 	/**
+	 * Specifies the filename template of non-initial output css files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.
+	 */
+	cssChunkFilename?: CssChunkFilename;
+	/**
+	 * Specifies the filename template of output css files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.
+	 */
+	cssFilename?: CssFilename;
+	/**
 	 * Similar to `output.devtoolModuleFilenameTemplate`, but used in the case of duplicate module identifiers.
 	 */
 	devtoolFallbackModuleFilenameTemplate?: DevtoolFallbackModuleFilenameTemplate;
@@ -2061,7 +2088,7 @@ export interface Output {
 	 */
 	libraryExport?: LibraryExport;
 	/**
-	 * Type of library (types included by default are 'var', 'module', 'assign', 'assign-properties', 'this', 'window', 'self', 'global', 'commonjs', 'commonjs2', 'commonjs-module', 'amd', 'amd-require', 'umd', 'umd2', 'jsonp', 'system', but others might be added by plugins).
+	 * Type of library (types included by default are 'var', 'module', 'assign', 'assign-properties', 'this', 'window', 'self', 'global', 'commonjs', 'commonjs2', 'commonjs-module', 'commonjs-static', 'amd', 'amd-require', 'umd', 'umd2', 'jsonp', 'system', but others might be added by plugins).
 	 */
 	libraryTarget?: LibraryType;
 	/**
@@ -2174,6 +2201,14 @@ export interface Environment {
 	 * The environment supports EcmaScript Module syntax to import EcmaScript modules (import ... from '...').
 	 */
 	module?: boolean;
+	/**
+	 * The environment supports optional chaining ('obj?.a' or 'obj?.()').
+	 */
+	optionalChaining?: boolean;
+	/**
+	 * The environment supports template literals.
+	 */
+	templateLiteral?: boolean;
 }
 /**
  * Use a Trusted Types policy to create urls for chunks.
@@ -2680,10 +2715,31 @@ export interface AssetResourceGeneratorOptions {
 	 */
 	filename?: FilenameTemplate;
 	/**
+	 * Emit the asset in the specified folder relative to 'output.path'. This should only be needed when custom 'publicPath' is specified to match the folder structure there.
+	 */
+	outputPath?: AssetModuleOutputPath;
+	/**
 	 * The 'publicPath' specifies the public URL address of the output files when referenced in a browser.
 	 */
 	publicPath?: RawPublicPath;
 }
+/**
+ * Options for css handling.
+ */
+export interface CssExperimentOptions {
+	/**
+	 * Avoid generating and loading a stylesheet and only embed exports from css into output javascript files.
+	 */
+	exportsOnly?: boolean;
+}
+/**
+ * Generator options for css modules.
+ */
+export interface CssGeneratorOptions {}
+/**
+ * Parser options for css modules.
+ */
+export interface CssParserOptions {}
 /**
  * No generator options are supported for this module type.
  */
@@ -2893,6 +2949,10 @@ export interface JavascriptParserOptions {
 	 * Specifies the behavior of invalid export names in "import ... from ...".
 	 */
 	importExportsPresence?: "error" | "warn" | "auto" | false;
+	/**
+	 * Enable/disable evaluating import.meta.
+	 */
+	importMeta?: boolean;
 	/**
 	 * Include polyfills or mocks for various node stuff.
 	 */
@@ -3104,6 +3164,14 @@ export interface OutputNormalized {
 	 * This option enables cross-origin loading of chunks.
 	 */
 	crossOriginLoading?: CrossOriginLoading;
+	/**
+	 * Specifies the filename template of non-initial output css files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.
+	 */
+	cssChunkFilename?: CssChunkFilename;
+	/**
+	 * Specifies the filename template of output css files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.
+	 */
+	cssFilename?: CssFilename;
 	/**
 	 * Similar to `output.devtoolModuleFilenameTemplate`, but used in the case of duplicate module identifiers.
 	 */
@@ -3395,6 +3463,10 @@ export interface ExperimentsExtra {
 	 */
 	buildHttp?: HttpUriAllowedUris | HttpUriOptions;
 	/**
+	 * Enable css support.
+	 */
+	css?: boolean | CssExperimentOptions;
+	/**
 	 * Compile entrypoints and import()s only when they are accessed.
 	 */
 	lazyCompilation?: boolean | LazyCompilationOptions;
@@ -3407,6 +3479,10 @@ export interface ExperimentsNormalizedExtra {
 	 * Build http(s): urls using a lockfile and resource content cache.
 	 */
 	buildHttp?: HttpUriOptions;
+	/**
+	 * Enable css support.
+	 */
+	css?: CssExperimentOptions;
 	/**
 	 * Compile entrypoints and import()s only when they are accessed.
 	 */

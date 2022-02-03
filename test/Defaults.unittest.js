@@ -9,24 +9,24 @@ const stripAnsi = require("strip-ansi");
  * @param {string} str String to quote
  * @returns {string} Escaped string
  */
-const quotemeta = str => {
+const quoteMeta = str => {
 	return str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
 };
 
 describe("Defaults", () => {
 	const cwd = process.cwd();
 	const cwdRegExp = new RegExp(
-		`${quotemeta(cwd)}((?:\\\\)?(?:[a-zA-Z.\\-_]+\\\\)*)`,
+		`${quoteMeta(cwd)}((?:\\\\)?(?:[a-zA-Z.\\-_]+\\\\)*)`,
 		"g"
 	);
 	const escapedCwd = JSON.stringify(cwd).slice(1, -1);
 	const escapedCwdRegExp = new RegExp(
-		`${quotemeta(escapedCwd)}((?:\\\\\\\\)?(?:[a-zA-Z.\\-_]+\\\\\\\\)*)`,
+		`${quoteMeta(escapedCwd)}((?:\\\\\\\\)?(?:[a-zA-Z.\\-_]+\\\\\\\\)*)`,
 		"g"
 	);
 	const normalize = str => {
 		if (cwd.startsWith("/")) {
-			str = str.replace(new RegExp(quotemeta(cwd), "g"), "<cwd>");
+			str = str.replace(new RegExp(quoteMeta(cwd), "g"), "<cwd>");
 		} else {
 			str = str.replace(cwdRegExp, (m, g) => `<cwd>${g.replace(/\\/g, "/")}`);
 			str = str.replace(
@@ -95,6 +95,7 @@ describe("Defaults", () => {
 		    "backCompat": true,
 		    "buildHttp": undefined,
 		    "cacheUnaffected": false,
+		    "css": undefined,
 		    "futureDefaults": false,
 		    "layers": false,
 		    "lazyCompilation": undefined,
@@ -217,6 +218,7 @@ describe("Defaults", () => {
 		        "exprContextRecursive": true,
 		        "exprContextRegExp": false,
 		        "exprContextRequest": ".",
+		        "importMeta": true,
 		        "strictExportPresence": undefined,
 		        "strictThisContextOnImports": false,
 		        "unknownContextCritical": true,
@@ -306,6 +308,8 @@ describe("Defaults", () => {
 		    "clean": undefined,
 		    "compareBeforeEmit": true,
 		    "crossOriginLoading": false,
+		    "cssChunkFilename": "[name].css",
+		    "cssFilename": "[name].css",
 		    "devtoolFallbackModuleFilenameTemplate": undefined,
 		    "devtoolModuleFilenameTemplate": undefined,
 		    "devtoolNamespace": "webpack",
@@ -987,6 +991,11 @@ describe("Defaults", () => {
 		-     "chunkFilename": "[name].js",
 		+     "chunkFilename": "[id].bundle.js",
 		@@ ... @@
+		-     "cssChunkFilename": "[name].css",
+		-     "cssFilename": "[name].css",
+		+     "cssChunkFilename": "[id].bundle.css",
+		+     "cssFilename": "bundle.css",
+		@@ ... @@
 		-     "filename": "[name].js",
 		+     "filename": "bundle.js",
 	`)
@@ -999,6 +1008,11 @@ describe("Defaults", () => {
 		@@ ... @@
 		-     "chunkFilename": "[name].js",
 		+     "chunkFilename": "[id].js",
+		@@ ... @@
+		-     "cssChunkFilename": "[name].css",
+		-     "cssFilename": "[name].css",
+		+     "cssChunkFilename": "[id].css",
+		+     "cssFilename": "[id].css",
 		@@ ... @@
 		-     "filename": "[name].js",
 		+     "filename": [Function filename],
@@ -1439,7 +1453,7 @@ describe("Defaults", () => {
 		+   "recordsOutputPath": "some-path",
 	`)
 	);
-	test("ecamVersion", { output: { ecmaVersion: 2020 } }, e =>
+	test("ecmaVersion", { output: { ecmaVersion: 2020 } }, e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: "single" } }, e =>
@@ -1903,8 +1917,12 @@ describe("Defaults", () => {
 			+     "backCompat": false,
 			@@ ... @@
 			-     "cacheUnaffected": false,
+			-     "css": undefined,
 			-     "futureDefaults": false,
 			+     "cacheUnaffected": true,
+			+     "css": Object {
+			+       "exportsOnly": false,
+			+     },
 			+     "futureDefaults": true,
 			@@ ... @@
 			-     "topLevelAwait": false,
@@ -1924,7 +1942,8 @@ describe("Defaults", () => {
 			+         ],
 			+         "test": /\\.wasm$/i,
 			+         "type": "webassembly/async",
-			@@ ... @@
+			+       },
+			+       Object {
 			+         "mimetype": "application/wasm",
 			+         "rules": Array [
 			+           Object {
@@ -1939,6 +1958,38 @@ describe("Defaults", () => {
 			+         "type": "webassembly/async",
 			+       },
 			+       Object {
+			+         "oneOf": Array [
+			+           Object {
+			+             "resolve": Object {
+			+               "fullySpecified": true,
+			+             },
+			+             "test": /\\.module\\.css$/i,
+			+             "type": "css/module",
+			+           },
+			+           Object {
+			+             "resolve": Object {
+			+               "fullySpecified": true,
+			+               "preferRelative": true,
+			+             },
+			+             "type": "css",
+			+           },
+			+         ],
+			+         "test": /\\.css$/i,
+			+       },
+			+       Object {
+			+         "mimetype": "text/css+module",
+			+         "resolve": Object {
+			+           "fullySpecified": true,
+			+         },
+			+         "type": "css/module",
+			+       },
+			+       Object {
+			+         "mimetype": "text/css",
+			+         "resolve": Object {
+			+           "fullySpecified": true,
+			+           "preferRelative": true,
+			+         },
+			+         "type": "css",
 			@@ ... @@
 			+         "exportsPresence": "error",
 			@@ ... @@
@@ -1949,7 +2000,11 @@ describe("Defaults", () => {
 			+     "__filename": "warn-mock",
 			+     "global": "warn",
 			@@ ... @@
+			+         "css",
+			@@ ... @@
+			-     "hashDigestLength": 20,
 			-     "hashFunction": "md4",
+			+     "hashDigestLength": 16,
 			+     "hashFunction": "xxhash64",
 			@@ ... @@
 			-       "<cwd>/node_modules/",
