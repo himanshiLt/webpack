@@ -4,10 +4,10 @@ preRun:
     - yarn install
 postMerge:
   pattern:
-    - "./test/*.unittest.js"
+    - "./test/WasmHashes.unittest.js"
 preMerge:
   pattern:
-    - "./test/*.unittest.js"
+    - "./test/WasmHashes.unittest.js"
 postRun:
   command:
     - yarn --version
